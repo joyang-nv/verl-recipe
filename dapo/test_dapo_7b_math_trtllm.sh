@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -xeuo pipefail
 
-project_name='DAPO'
+project_name=${PROJECT_NAME:-'DAPO'}
 
 adv_estimator=grpo
 
