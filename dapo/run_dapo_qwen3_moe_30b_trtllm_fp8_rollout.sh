@@ -2,7 +2,7 @@
 set -xeuo pipefail
 
 gen_tp=2
-project_name='DAPO-FP8-ROLLOUT'
+project_name=${PROJECT_NAME:-'DAPO-FP8-ROLLOUT'}
 exp_name="DAPO-Qwen3-MOE-30B-TRTLLM-FP8-ROLLOUT-TP${gen_tp}${EXP_NAME_SUFFIX:+"-"}${EXP_NAME_SUFFIX}"
 
 adv_estimator=grpo
@@ -136,7 +136,7 @@ python3 -m recipe.dapo.main_dapo \
     actor_rollout_ref.rollout.val_kwargs.top_k=${top_k} \
     actor_rollout_ref.rollout.val_kwargs.do_sample=True \
     actor_rollout_ref.rollout.val_kwargs.n=1 \
-    actor_rollout_ref.rollout.update_weights_bucket_megabytes=2048 \
+    actor_rollout_ref.rollout.checkpoint_engine.update_weights_bucket_megabytes=2048 \
     +actor_rollout_ref.rollout.engine_kwargs.trtllm.batch_wait_timeout_iters=32 \
     +actor_rollout_ref.rollout.engine_kwargs.trtllm.batch_wait_max_tokens_ratio=0.5 \
     +actor_rollout_ref.rollout.quantization=fp8 \
@@ -167,4 +167,4 @@ python3 -m recipe.dapo.main_dapo \
     trainer.max_actor_ckpt_to_keep=5 \
     +trainer.dump_high_diff_tokens=False \
     +trainer.dump_high_diff_dir="${CKPTS_DIR}/30B_logprob_diff_dumps" \
-    actor_rollout_ref.rollout.enforce_eager=False
+    actor_rollout_ref.rollout.enforce_eager=False > ${exp_name}.log 2>&1

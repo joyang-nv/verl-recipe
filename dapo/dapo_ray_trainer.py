@@ -94,8 +94,9 @@ class RayDAPOTrainer(RayPPOTrainer):
         self.global_steps = 0
         self.gen_steps = 0
 
-        # load checkpoint before doing anything
+        # load checkpoint and update weights before doing anything
         self._load_checkpoint()
+        self.checkpoint_manager.update_weights()
 
         # perform validation before training
         # currently, we only support validation using the reward_function.
@@ -157,6 +158,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                     # generate a batch
                     with marked_timer("gen", timing_raw, "red"):
                         gen_batch_output = self.async_rollout_manager.generate_sequences(gen_batch_output)
+                        self.checkpoint_manager.sleep_replicas()
                         timing_raw.update(gen_batch_output.meta_info["timing"])
                         gen_batch_output.meta_info.pop("timing", None)
 
@@ -165,6 +167,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                             gen_baseline_batch = deepcopy(gen_batch)
                             gen_baseline_batch.meta_info["do_sample"] = False
                             gen_baseline_output = self.async_rollout_manager.generate_sequences(gen_baseline_batch)
+                            self.checkpoint_manager.sleep_replicas()
 
                             new_batch = new_batch.union(gen_baseline_output)
                             # compute reward model score on new_batch
@@ -343,6 +346,10 @@ class RayDAPOTrainer(RayPPOTrainer):
                             actor_output = self.actor_rollout_wg.update_actor(batch)
                         actor_output_metrics = reduce_metrics(actor_output.meta_info["metrics"])
                         metrics.update(actor_output_metrics)
+
+                        # update weights from trainer to rollout
+                        with marked_timer("update_weights", timing_raw, "red"):
+                            self.checkpoint_manager.update_weights()
 
                     # Log rollout generations if enabled
                     rollout_data_dir = self.config.trainer.get("rollout_data_dir", None)
